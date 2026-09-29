@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Tienda Escolar Inteligente 🎒</title>
+  <meta name="description" content="Tienda escolar digital - Compra sin filas desde tu celular o computador">
+  <meta name="theme-color" content="#6c3fc5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ===== TOPBAR ===== -->
+<header class="topbar" id="topbar">
+  <button class="btn-icon menu-btn" id="menuBtn" title="Menú" aria-label="Abrir menú">
+    <i class="fas fa-bars"></i>
+  </button>
+
+  <div class="topbar-logo">
+    <div class="logo-icon">🎒</div>
+    <div>
+      <div class="logo-text">Tienda Escolar</div>
+      <div class="logo-sub">Inteligente</div>
+    </div>
+  </div>
+
+  <div class="search-bar">
+    <i class="fas fa-search search-icon"></i>
+    <input type="text" id="searchInput" placeholder="Buscar productos..." autocomplete="off">
+  </div>
+
+  <div class="topbar-actions">
+    <button class="btn-icon" id="favBtn" title="Favoritos" onclick="showSection('favorites')">
+      <i class="fas fa-heart"></i>
+    </button>
+    <button class="btn-icon theme-toggle" id="themeToggle" title="Cambiar tema">
+      <span class="theme-icon">🌙</span>
+    </button>
+    <button class="btn-icon cart-icon" id="cartBtn" title="Carrito">
+      <i class="fas fa-shopping-cart"></i>
+      <span class="badge" id="cartBadge" style="display:none">0</span>
+    </button>
+    <div class="user-avatar" id="userAvatar" onclick="showSection('profile')" title="Mi perfil">
+      <span id="userAvatarText">👤</span>
+    </div>
+  </div>
+</header>
+
+<!-- ===== SIDEBAR ===== -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-section-title">Menú principal</div>
+
+  <div class="sidebar-item active" data-section="home" onclick="showSection('home')">
+    <span class="item-icon">🏠</span> Inicio
+  </div>
+  <div class="sidebar-item" data-section="catalog" onclick="showSection('catalog')">
+    <span class="item-icon">🛍️</span> Catálogo
+  </div>
+  <div class="sidebar-item" data-section="orders" onclick="showSection('orders')">
+    <span class="item-icon">📦</span> Mis pedidos
+    <span class="item-count" id="ordersCount" style="display:none">0</span>
+  </div>
+  <div class="sidebar-item" data-section="favorites" onclick="showSection('favorites')">
+    <span class="item-icon">❤️</span> Favoritos
+  </div>
+  <div class="sidebar-item" data-section="profile" onclick="showSection('profile')">
+    <span class="item-icon">👤</span> Mi perfil
+  </div>
+
+  <div class="sidebar-section-title">Categorías</div>
+
+  <div class="sidebar-item" onclick="filterByCategory('Bebidas')">
+    <span class="item-icon">🥤</span> Bebidas
+  </div>
+  <div class="sidebar-item" onclick="filterByCategory('Helados')">
+    <span class="item-icon">🍦</span> Helados
+  </div>
+  <div class="sidebar-item" onclick="filterByCategory('Snacks')">
+    <span class="item-icon">🍟</span> Snacks
+  </div>
+  <div class="sidebar-item" onclick="filterByCategory('Panadería')">
+    <span class="item-icon">🥐</span> Panadería
+  </div>
+  <div class="sidebar-item" onclick="filterByCategory('Comidas rápidas')">
+    <span class="item-icon">🍔</span> Comidas rápidas
+  </div>
+  <div class="sidebar-item" onclick="filterByCategory('Útiles escolares')">
+    <span class="item-icon">📚</span> Útiles escolares
+  </div>
+
+  <div class="sidebar-section-title">Administración</div>
+  <div class="sidebar-item" onclick="window.open('admin.html','_blank')">
+    <span class="item-icon">⚙️</span> Panel admin
+  </div>
+</aside>
+
+<!-- ===== CART OVERLAY + DRAWER ===== -->
+<div class="cart-overlay" id="cartOverlay" onclick="toggleCart(false)"></div>
+<aside class="cart-drawer" id="cartDrawer">
+  <div class="cart-header">
+    <h2>🛒 Mi Carrito</h2>
+    <button class="btn btn-ghost btn-sm" onclick="toggleCart(false)">✕</button>
+  </div>
+  <div class="cart-items-list" id="cartItemsList">
+    <div class="empty-state" style="padding:40px 20px">
+      <div class="empty-state-icon">🛒</div>
+      <h3>Tu carrito está vacío</h3>
+      <p>Agrega productos para comenzar</p>
+    </div>
+  </div>
+  <div class="cart-footer">
+    <div class="cart-coupon-row">
+      <input type="text" id="couponInput" placeholder="Código de descuento..." maxlength="20">
+      <button class="btn btn-outline btn-sm" onclick="applyCoupon()">Aplicar</button>
+    </div>
+    <div class="cart-totals" id="cartTotals">
+      <div class="cart-total-row"><span>Subtotal</span><span id="cartSubtotal">$0</span></div>
+      <div class="cart-total-row" id="discountRow" style="display:none; color:var(--success)"><span>Descuento</span><span id="cartDiscount">-$0</span></div>
+      <div class="cart-total-row total"><span>Total</span><span id="cartTotal">$0</span></div>
+    </div>
+    <button class="btn btn-primary btn-full" id="checkoutBtn" onclick="openCheckout()" disabled>
+      <i class="fas fa-lock"></i> Realizar pedido
+    </button>
+    <button class="btn btn-ghost btn-sm btn-full" style="margin-top:8px" onclick="clearCart()">
+      Vaciar carrito
+    </button>
+  </div>
+</aside>
+
+<!-- ===== MAIN CONTENT ===== -->
+<div class="app-layout">
+  <main class="main-content" id="mainContent">
+
+    <!-- ====== SECCIÓN: INICIO ====== -->
+    <section class="page-section active" id="section-home">
+
+      <!-- Store hours -->
+      <div class="store-hours-bar" id="storeHoursBar">
+        <div class="store-open-dot"></div>
+        <div>
+          <strong>Tienda Abierta</strong> · Lun - Vie: 6:30 AM - 4:00 PM
+        </div>
+        <div style="margin-left:auto; font-size:12px; color:var(--text-muted)" id="timeDisplay"></div>
+      </div>
+
+      <!-- Hero -->
+      <div class="hero-banner">
+        <div class="hero-text">
+          <h1>¡Hola! Pide sin filas 🚀</h1>
+          <p>Compra tus productos favoritos desde aquí y recógelos cuando estén listos.</p>
+          <div class="hero-store-info">
+            <div class="hero-chip">⚡ Entrega express</div>
+            <div class="hero-chip">📱 Sin filas</div>
+            <div class="hero-chip">✅ Pago fácil</div>
+          </div>
+        </div>
+        <div class="hero-emoji">🎒</div>
+      </div>
+
+      <!-- Promo Banner -->
+      <div class="promo-banner" id="promoBanner">
+        <div class="promo-text">
+          <h3>🔥 Oferta del día</h3>
+          <p>Usa el código <strong>ESCUELA2024</strong> y obtén $2.000 de descuento</p>
+        </div>
+        <div class="promo-emoji">🎉</div>
+      </div>
+
+      <!-- Categorías rápidas -->
+      <div class="section-header">
+        <h2 class="section-title"><span>🗂️</span> Categorías</h2>
+      </div>
+      <div class="categories-scroll" id="homeCategories"></div>
+
+      <!-- Destacados -->
+      <div class="section-header">
+        <h2 class="section-title"><span>⭐</span> Destacados</h2>
+        <span class="section-link" onclick="showSection('catalog')">Ver todos</span>
+      </div>
+      <div class="products-grid" id="featuredGrid"></div>
+
+      <!-- Más vendidos -->
+      <div class="section-header">
+        <h2 class="section-title"><span>🔥</span> Más vendidos</h2>
+        <span class="section-link" onclick="showSection('catalog')">Ver todos</span>
+      </div>
+      <div class="products-grid" id="topSalesGrid"></div>
+
+    </section>
+
+    <!-- ====== SECCIÓN: CATÁLOGO ====== -->
+    <section class="page-section" id="section-catalog">
+      <div class="section-header">
+        <h2 class="section-title"><span>🛍️</span> Todos los productos</h2>
+        <select id="sortSelect" class="form-control" style="width:auto;font-size:13px;padding:7px 12px">
+          <option value="default">Ordenar por</option>
+          <option value="price-asc">Precio: menor a mayor</option>
+          <option value="price-desc">Precio: mayor a menor</option>
+          <option value="rating">Mejor valorados</option>
+          <option value="sales">Más vendidos</option>
+        </select>
+      </div>
+      <div class="categories-scroll" id="catalogCategories"></div>
+      <div class="products-grid" id="catalogGrid"></div>
+      <div id="catalogEmpty" style="display:none">
+        <div class="empty-state">
+          <div class="empty-state-icon">🔍</div>
+          <h3>No se encontraron productos</h3>
+          <p>Intenta con otra búsqueda o categoría</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== SECCIÓN: MIS PEDIDOS ====== -->
+    <section class="page-section" id="section-orders">
+      <div class="section-header">
+        <h2 class="section-title"><span>📦</span> Mis pedidos</h2>
+        <button class="btn btn-ghost btn-sm" onclick="loadOrders()">
+          <i class="fas fa-sync-alt"></i> Actualizar
+        </button>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" data-filter="all" onclick="filterOrders('all', this)">Todos</button>
+        <button class="tab-btn" data-filter="received" onclick="filterOrders('received', this)">Recibidos</button>
+        <button class="tab-btn" data-filter="preparing" onclick="filterOrders('preparing', this)">Preparando</button>
+        <button class="tab-btn" data-filter="ready" onclick="filterOrders('ready', this)">Listos</button>
+        <button class="tab-btn" data-filter="delivered" onclick="filterOrders('delivered', this)">Entregados</button>
+      </div>
+      <div id="ordersList"></div>
+    </section>
+
+    <!-- ====== SECCIÓN: FAVORITOS ====== -->
+    <section class="page-section" id="section-favorites">
+      <div class="section-header">
+        <h2 class="section-title"><span>❤️</span> Mis favoritos</h2>
+      </div>
+      <div class="products-grid" id="favoritesGrid"></div>
+      <div id="favoritesEmpty" style="display:none">
+        <div class="empty-state">
+          <div class="empty-state-icon">💔</div>
+          <h3>Sin favoritos aún</h3>
+          <p>Toca el ❤️ en los productos para guardarlos</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== SECCIÓN: PERFIL ====== -->
+    <section class="page-section" id="section-profile">
+      <div style="max-width:500px;margin:0 auto">
+        <div style="text-align:center;padding:32px 0 24px">
+          <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 16px;box-shadow:var(--shadow-lg)">
+            <span id="profileAvatarBig">👤</span>
+          </div>
+          <h2 id="profileName" style="font-size:22px;font-weight:800;margin-bottom:4px">Usuario</h2>
+          <p id="profileEmail" style="color:var(--text-muted);font-size:14px">usuario@colegio.edu.co</p>
+          <div style="display:flex;gap:8px;justify-content:center;margin-top:12px">
+            <div style="background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius-md);padding:10px 20px;text-align:center">
+              <div style="font-size:20px;font-weight:800;color:var(--primary)" id="profileTotalOrders">0</div>
+              <div style="font-size:11px;color:var(--text-muted)">Pedidos</div>
+            </div>
+            <div style="background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius-md);padding:10px 20px;text-align:center">
+              <div style="font-size:20px;font-weight:800;color:var(--secondary)" id="profileFavCount">0</div>
+              <div style="font-size:11px;color:var(--text-muted)">Favoritos</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px">
+          <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">✏️ Editar perfil</h3>
+          <div class="form-group">
+            <label class="form-label">Nombre completo</label>
+            <input class="form-control" id="editName" type="text" placeholder="Tu nombre">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Correo electrónico</label>
+            <input class="form-control" id="editEmail" type="email" placeholder="correo@colegio.edu.co">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ID Estudiantil</label>
+            <input class="form-control" id="editStudentId" type="text" placeholder="Número de identificación">
+          </div>
+          <button class="btn btn-primary btn-full" onclick="saveProfile()">Guardar cambios</button>
+        </div>
+
+        <button class="btn btn-ghost btn-full" onclick="openLogin()">
+          <i class="fas fa-sign-in-alt"></i> Iniciar sesión / Registrarse
+        </button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ===== BOTTOM NAVIGATION ===== -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <div class="bottom-nav-item active" data-section="home" onclick="showSection('home')">
+      <span class="bottom-nav-icon">🏠</span>
+      <span class="bottom-nav-label">Inicio</span>
+    </div>
+    <div class="bottom-nav-item" data-section="catalog" onclick="showSection('catalog')">
+      <span class="bottom-nav-icon">🛍️</span>
+      <span class="bottom-nav-label">Catálogo</span>
+    </div>
+    <div class="bottom-nav-item" onclick="toggleCart(true)" style="position:relative">
+      <span class="bottom-nav-icon">🛒</span>
+      <span class="bottom-nav-label">Carrito</span>
+      <span class="bottom-nav-badge" id="bottomCartBadge" style="display:none">0</span>
+    </div>
+    <div class="bottom-nav-item" data-section="orders" onclick="showSection('orders')">
+      <span class="bottom-nav-icon">📦</span>
+      <span class="bottom-nav-label">Pedidos</span>
+    </div>
+    <div class="bottom-nav-item" data-section="profile" onclick="showSection('profile')">
+      <span class="bottom-nav-icon">👤</span>
+      <span class="bottom-nav-label">Perfil</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== MODAL: DETALLE DE PRODUCTO ===== -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal" id="productModalContent">
+    <div class="modal-header">
+      <div></div>
+      <button class="btn btn-ghost btn-sm" onclick="closeProductModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="product-detail-img" id="modalProductImg"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span id="modalSubcat" style="font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px"></span>
+        <div class="product-rating">
+          <span class="stars" id="modalStars"></span>
+          <span class="rating-num" id="modalRatingNum"></span>
+        </div>
+      </div>
+      <h2 id="modalProductName" style="font-size:22px;font-weight:800;margin-bottom:8px"></h2>
+      <p id="modalProductDesc" style="color:var(--text-secondary);font-size:14px;line-height:1.5;margin-bottom:12px"></p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span id="modalProductPrice" style="font-size:26px;font-weight:800;color:var(--primary)"></span>
+        <span id="modalStockInfo" style="font-size:12px;color:var(--text-muted)"></span>
+      </div>
+      <!-- Comentarios / valoración -->
+      <div style="background:var(--bg-input);border-radius:var(--radius-md);padding:12px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:8px">⭐ Valoraciones de clientes</div>
+        <div id="modalReviews" style="font-size:12px;color:var(--text-muted)">Cargando reseñas...</div>
+      </div>
+      <div class="qty-control-lg">
+        <button class="qty-btn-lg" onclick="changeModalQty(-1)">−</button>
+        <span class="qty-display" id="modalQty">1</span>
+        <button class="qty-btn-lg" onclick="changeModalQty(1)">+</button>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-outline" id="modalFavBtn" onclick="toggleFavModal()">❤️ Favorito</button>
+        <button class="btn btn-primary" style="flex:1" id="modalAddBtn" onclick="addToCartFromModal()">
+          <i class="fas fa-cart-plus"></i> Agregar al carrito
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: CHECKOUT ===== -->
+<div class="modal-overlay" id="checkoutModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🧾 Realizar pedido</h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('checkoutModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="checkoutStep1">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:14px">📋 Resumen del pedido</h3>
+        <div id="checkoutItemsPreview" style="background:var(--bg-input);border-radius:var(--radius-md);padding:14px;margin-bottom:14px;font-size:13px"></div>
+        <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:800;margin-bottom:14px">
+          <span>Total a pagar:</span>
+          <span style="color:var(--primary)" id="checkoutTotal"></span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">📝 Notas adicionales (opcional)</label>
+          <textarea class="form-control" id="orderNotes" rows="2" placeholder="Ej: Sin salsa, por favor..."></textarea>
+        </div>
+        <h3 style="font-size:15px;font-weight:700;margin:14px 0 10px">💳 Método de pago</h3>
+        <div class="payment-methods" id="paymentMethods">
+          <button class="payment-method-btn active" data-method="qr-nequi" onclick="selectPayment(this)">📱 Nequi</button>
+          <button class="payment-method-btn" data-method="qr-daviplata" onclick="selectPayment(this)">💜 Daviplata</button>
+          <button class="payment-method-btn" data-method="qr-bancolombia" onclick="selectPayment(this)">🟡 Bancolombia</button>
+          <button class="payment-method-btn" data-method="efectivo" onclick="selectPayment(this)">💵 Efectivo</button>
+        </div>
+        <button class="btn btn-primary btn-full" style="margin-top:16px" onclick="goToPayment()">
+          Continuar al pago <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+
+      <!-- PASO 2: QR + COMPROBANTE AUTOMÁTICO -->
+      <div id="checkoutStep2" style="display:none">
+        <div class="qr-container">
+          <h3 style="font-size:17px;font-weight:800;margin-bottom:4px">🏪 Tienda Escolar Inteligente</h3>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">Escanea el código para pagar</p>
+
+          <!-- QR -->
+          <div class="qr-code-placeholder" id="qrCodeDisplay"></div>
+          <div id="qrPaymentName" style="font-size:15px;font-weight:800;color:var(--primary);margin:6px 0 2px"></div>
+          <div id="qrTotalDisplay" style="font-size:26px;font-weight:900;color:var(--text-primary);margin-bottom:10px"></div>
+
+          <!-- Instrucciones paso a paso -->
+          <div style="background:var(--bg-input);border-radius:var(--radius-md);padding:12px 14px;font-size:12px;color:var(--text-secondary);margin-bottom:14px;text-align:left;line-height:1.8">
+            <strong style="color:var(--text-primary)">¿Cómo pagar?</strong><br>
+            <span style="color:var(--primary)">①</span> Abre tu app (Nequi / Daviplata / Bancolombia)<br>
+            <span style="color:var(--primary)">②</span> Escanea el QR y confirma el valor exacto<br>
+            <span style="color:var(--primary)">③</span> Haz clic en <strong>"Generar comprobante"</strong> abajo<br>
+            <span style="color:var(--primary)">④</span> Descarga o muéstrale el comprobante al vendedor
+          </div>
+
+          <!-- Área del comprobante generado -->
+          <div id="voucherArea" style="display:none;margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;text-align:left">
+              📄 Tu comprobante de pago:
+            </div>
+            <canvas id="voucherCanvas" style="width:100%;border-radius:12px;border:2px solid var(--primary);box-shadow:var(--shadow-md)"></canvas>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button class="btn btn-outline btn-sm" style="flex:1" onclick="downloadVoucher()">
+                ⬇️ Descargar
+              </button>
+              <button class="btn btn-ghost btn-sm" style="flex:1" onclick="shareVoucher()">
+                📤 Compartir
+              </button>
+            </div>
+            <!-- Check verde de comprobante listo -->
+            <div style="background:#d4edda;border-radius:var(--radius-md);padding:10px 14px;margin-top:10px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#155724">
+              ✅ Comprobante generado y enviado al administrador
+            </div>
+          </div>
+
+          <!-- Botón generar comprobante -->
+          <button class="btn btn-secondary btn-full" id="generateVoucherBtn" onclick="generateVoucher()" style="margin-bottom:10px">
+            🧾 Generar comprobante de pago
+          </button>
+
+          <!-- Opción: subir imagen propia -->
+          <details style="font-size:12px;color:var(--text-muted);margin-bottom:4px">
+            <summary style="cursor:pointer;font-weight:600;color:var(--text-secondary)">📷 ¿Prefieres subir tu propio comprobante?</summary>
+            <div style="margin-top:8px">
+              <input type="file" class="form-control" id="paymentProofFile" accept="image/*" style="font-size:12px" onchange="previewUploadedProof(this)">
+              <div id="uploadedProofPreview" style="margin-top:8px;display:none">
+                <img id="uploadedProofImg" style="width:100%;border-radius:8px;border:1.5px solid var(--border)" alt="Comprobante">
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:6px">
+          <button class="btn btn-ghost" onclick="backToStep1()">← Volver</button>
+          <button class="btn btn-primary" style="flex:1" id="confirmOrderBtn" onclick="placeOrder()">
+            ✅ Confirmar pedido
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: PEDIDO CONFIRMADO ===== -->
+<div class="modal-overlay" id="orderConfirmedModal">
+  <div class="modal">
+    <div class="modal-body" style="text-align:center;padding:36px 24px">
+      <div style="font-size:70px;margin-bottom:16px;animation:float 3s ease-in-out infinite">🎉</div>
+      <h2 style="font-size:24px;font-weight:900;margin-bottom:8px">¡Pedido realizado!</h2>
+      <p style="color:var(--text-secondary);margin-bottom:20px;line-height:1.5">
+        Tu pedido ha sido recibido. Te avisaremos cuando esté listo.
+      </p>
+      <div style="background:linear-gradient(135deg,var(--primary),var(--secondary));color:white;border-radius:var(--radius-lg);padding:20px;margin-bottom:20px">
+        <div style="font-size:12px;opacity:0.8;margin-bottom:4px">Número de pedido</div>
+        <div style="font-size:28px;font-weight:900" id="confirmedOrderNum">#0001</div>
+        <div style="font-size:13px;opacity:0.85;margin-top:8px" id="confirmedOrderTime">Tiempo estimado: 15 min</div>
+      </div>
+      <div class="order-status-bar">
+        <div class="status-step active">
+          <div class="step-dot">🟡</div>
+          <div class="step-label">Recibido</div>
+        </div>
+        <div class="status-step">
+          <div class="step-dot">🟠</div>
+          <div class="step-label">Preparando</div>
+        </div>
+        <div class="status-step">
+          <div class="step-dot">🟢</div>
+          <div class="step-label">Listo</div>
+        </div>
+        <div class="status-step">
+          <div class="step-dot">✅</div>
+          <div class="step-label">Entregado</div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="closeModal('orderConfirmedModal'); showSection('orders')">
+        Ver mis pedidos
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: LOGIN ===== -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🔐 Iniciar sesión</h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('loginModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchLoginTab('login', this)">Iniciar sesión</button>
+        <button class="tab-btn" onclick="switchLoginTab('register', this)">Registrarse</button>
+      </div>
+
+      <div id="loginForm">
+        <form onsubmit="event.preventDefault(); doLogin()">
+        <div class="form-group">
+          <label class="form-label">📧 Correo electrónico</label>
+          <input class="form-control" id="loginEmail" type="email" placeholder="correo@colegio.edu.co" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">🔑 Contraseña</label>
+          <input class="form-control" id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" style="margin-bottom:10px">
+          <i class="fas fa-sign-in-alt"></i> Ingresar
+        </button>
+        <button class="btn btn-ghost btn-full" onclick="loginWithGoogle()">
+          <span>🌐</span> Continuar con Google
+        </button>
+        <div style="text-align:center;margin-top:10px;font-size:13px;color:var(--text-muted)">
+          <span onclick="showForgotPassword()" style="cursor:pointer;color:var(--primary)">¿Olvidaste tu contraseña?</span>
+        </div>
+        </form>
+      </div>
+
+      <div id="registerForm" style="display:none">
+        <form onsubmit="event.preventDefault(); doRegister()">
+        <div class="form-group">
+          <label class="form-label">👤 Nombre completo</label>
+          <input class="form-control" id="regName" type="text" placeholder="Tu nombre completo" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">📧 Correo electrónico</label>
+          <input class="form-control" id="regEmail" type="email" placeholder="correo@colegio.edu.co" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">🆔 ID Estudiantil</label>
+          <input class="form-control" id="regStudentId" type="text" placeholder="Número de identificación" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">🎭 Rol</label>
+          <select class="form-control" id="regRole">
+            <option value="student">Estudiante</option>
+            <option value="teacher">Profesor</option>
+            <option value="staff">Personal</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">🔑 Contraseña</label>
+          <input class="form-control" id="regPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn btn-secondary btn-full">
+          <i class="fas fa-user-plus"></i> Crear cuenta
+        </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: NOTIFICACIÓN PEDIDO LISTO ===== -->
+<div class="modal-overlay" id="orderReadyModal">
+  <div class="modal" style="background:transparent;box-shadow:none;max-width:360px">
+    <div class="notif-order-modal order-ready-pulse">
+      <div class="notif-icon">🎉</div>
+      <h2>¡Tu pedido está listo!</h2>
+      <p id="orderReadyMessage">Hola. Tu pedido ya está listo para recoger en la tienda escolar. ¡Gracias por tu compra!</p>
+      <button class="btn" style="background:white;color:var(--primary);font-weight:800;width:100%" onclick="closeModal('orderReadyModal')">
+        ¡Entendido! 🚀
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOAST CONTAINER ===== -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Canvas oculto para generar comprobante -->
+<canvas id="hiddenVoucherCanvas" style="display:none"></canvas>
+
+<!-- ===== SCRIPTS ===== -->
+<script src="js/app.js"></script>
+</body>
+</html>

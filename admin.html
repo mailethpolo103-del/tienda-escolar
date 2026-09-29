@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Administrador · Tienda Escolar</title>
+  <meta name="theme-color" content="#6c3fc5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Admin-specific styles */
+    .admin-layout { display: flex; min-height: 100vh; padding-top: var(--nav-height); }
+    .admin-sidebar {
+      width: 230px; flex-shrink: 0;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      position: fixed; top: var(--nav-height); left: 0; bottom: 0;
+      padding: 16px 10px; overflow-y: auto; z-index: 900;
+    }
+    .admin-content { flex: 1; margin-left: 230px; padding: 24px; min-width: 0; }
+    .admin-topbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: var(--nav-height);
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      display: flex; align-items: center; padding: 0 20px; gap: 16px;
+      z-index: 1000; box-shadow: var(--shadow-md);
+    }
+    .admin-topbar .logo-text { color: white; font-size: 16px; font-weight: 800; }
+    .admin-topbar .admin-badge {
+      background: var(--secondary); color: white;
+      font-size: 11px; font-weight: 700; padding: 3px 10px;
+      border-radius: var(--radius-full); margin-left: 8px;
+    }
+
+    .order-admin-card {
+      background: var(--bg-card); border-radius: var(--radius-lg);
+      border: 1.5px solid var(--border); padding: 18px; margin-bottom: 14px;
+      transition: var(--transition);
+    }
+    .order-admin-card:hover { box-shadow: var(--shadow-md); }
+    .order-admin-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+    .order-admin-num { font-size: 18px; font-weight: 900; color: var(--primary); }
+    .order-admin-user { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+    .order-admin-time { font-size: 12px; color: var(--text-muted); }
+
+    .status-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .status-btn {
+      padding: 7px 14px; border-radius: var(--radius-full);
+      font-size: 12px; font-weight: 700; border: 1.5px solid transparent;
+      transition: var(--transition); cursor: pointer;
+    }
+    .status-btn.s-received { background: #fff3cd; color: #856404; border-color: #ffc107; }
+    .status-btn.s-preparing { background: #fde8d0; color: #8b4513; border-color: #ff9800; }
+    .status-btn.s-ready { background: #d4edda; color: #155724; border-color: #28a745; }
+    .status-btn.s-delivered { background: #d4edda; color: #155724; border-color: #28a745; }
+    .status-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+    .status-btn.active { box-shadow: 0 0 0 3px rgba(108,63,197,0.2); }
+
+    .product-admin-row {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--bg-card); border-radius: var(--radius-lg);
+      border: 1.5px solid var(--border); padding: 14px;
+      margin-bottom: 10px; transition: var(--transition);
+    }
+    .product-admin-row:hover { box-shadow: var(--shadow-sm); }
+    .prod-admin-img {
+      width: 52px; height: 52px; border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0;
+    }
+    .prod-admin-info { flex: 1; min-width: 0; }
+    .prod-admin-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+    .prod-admin-meta { font-size: 12px; color: var(--text-muted); }
+    .prod-admin-price { font-size: 15px; font-weight: 800; color: var(--primary); margin-right: 12px; }
+    .prod-admin-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background: var(--border-strong); border-radius: var(--radius-full);
+      transition: .3s;
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 18px; width: 18px;
+      left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .3s;
+    }
+    input:checked + .slider { background: var(--success); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    .chart-card {
+      background: var(--bg-card); border-radius: var(--radius-lg);
+      border: 1.5px solid var(--border); padding: 20px; margin-bottom: 20px;
+    }
+    .chart-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+
+    @media(max-width:900px) {
+      .admin-sidebar { transform: translateX(-100%); }
+      .admin-sidebar.open { transform: translateX(0); box-shadow: var(--shadow-lg); }
+      .admin-content { margin-left: 0; padding: 16px; }
+    }
+    @media(max-width:600px) {
+      .admin-topbar { padding: 0 14px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .status-btns { gap: 6px; }
+      .status-btn { padding: 6px 10px; font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== ADMIN TOPBAR ===== -->
+<header class="admin-topbar">
+  <button class="btn-icon" id="adminMenuBtn" style="background:rgba(255,255,255,0.15);border:none;color:white"
+          onclick="toggleAdminSidebar()">
+    <i class="fas fa-bars"></i>
+  </button>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="logo-icon">🎒</div>
+    <div>
+      <span class="logo-text">Tienda Escolar</span>
+      <span class="admin-badge">ADMIN</span>
+    </div>
+  </div>
+  <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+    <button class="btn-icon theme-toggle" id="themeToggle"
+            style="background:rgba(255,255,255,0.15);border:none;color:white"
+            title="Cambiar tema">
+      <span class="theme-icon">🌙</span>
+    </button>
+    <a href="index.html" class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;border:none;font-weight:700">
+      🏪 Ver tienda
+    </a>
+    <div class="user-avatar" style="background:rgba(255,255,255,0.2);border-color:rgba(255,255,255,0.3)">AD</div>
+  </div>
+</header>
+
+<!-- ===== ADMIN SIDEBAR ===== -->
+<aside class="admin-sidebar" id="adminSidebar">
+  <div class="sidebar-section-title">Panel Admin</div>
+  <div class="sidebar-item active" data-section="dashboard" onclick="showAdminSection('dashboard')">
+    <span class="item-icon">📊</span> Dashboard
+  </div>
+  <div class="sidebar-item" data-section="orders" onclick="showAdminSection('orders')">
+    <span class="item-icon">📦</span> Pedidos
+    <span class="item-count" id="pendingOrdersCount" style="display:none">0</span>
+  </div>
+  <div class="sidebar-item" data-section="products" onclick="showAdminSection('products')">
+    <span class="item-icon">🛍️</span> Productos
+  </div>
+  <div class="sidebar-item" data-section="inventory" onclick="showAdminSection('inventory')">
+    <span class="item-icon">📋</span> Inventario
+  </div>
+  <div class="sidebar-item" data-section="stats" onclick="showAdminSection('stats')">
+    <span class="item-icon">📈</span> Estadísticas
+  </div>
+  <div class="sidebar-item" data-section="coupons" onclick="showAdminSection('coupons')">
+    <span class="item-icon">🎫</span> Cupones
+  </div>
+  <div class="sidebar-section-title">Acciones rápidas</div>
+  <div class="sidebar-item" onclick="openProductForm(null)">
+    <span class="item-icon">➕</span> Agregar producto
+  </div>
+  <div class="sidebar-item" onclick="refreshAll()">
+    <span class="item-icon">🔄</span> Actualizar datos
+  </div>
+  <div class="sidebar-item" onclick="window.open('turnos.html','_blank')">
+    <span class="item-icon">🎫</span> Pantalla de turnos
+  </div>
+</aside>
+
+<!-- ===== ADMIN CONTENT ===== -->
+<div class="admin-layout">
+  <main class="admin-content">
+
+    <!-- ── DASHBOARD ── -->
+    <section class="page-section active" id="section-dashboard">
+      <div class="section-header">
+        <h2 class="section-title"><span>📊</span> Dashboard</h2>
+        <button class="btn btn-ghost btn-sm" onclick="refreshAll()">
+          <i class="fas fa-sync-alt"></i> Actualizar
+        </button>
+      </div>
+
+      <div class="stats-grid" id="dashboardStats">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(108,63,197,0.12);color:var(--primary)">📦</div>
+          <div class="stat-value" id="statTotalOrders">—</div>
+          <div class="stat-label">Pedidos hoy</div>
+          <div class="stat-change up">▲ cargando...</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(34,197,94,0.12);color:var(--success)">💰</div>
+          <div class="stat-value" id="statTodaySales">—</div>
+          <div class="stat-label">Ventas hoy</div>
+          <div class="stat-change up" id="statSalesChange">▲ cargando...</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(255,107,53,0.12);color:var(--secondary)">⏳</div>
+          <div class="stat-value" id="statPendingOrders">—</div>
+          <div class="stat-label">Pedidos pendientes</div>
+          <div class="stat-change" id="statPendingChange">— pendientes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(59,130,246,0.12);color:var(--info)">🛍️</div>
+          <div class="stat-value" id="statTotalProducts">—</div>
+          <div class="stat-label">Productos activos</div>
+          <div class="stat-change up">✅ en catálogo</div>
+        </div>
+      </div>
+
+      <!-- Pedidos recientes -->
+      <div class="section-header">
+        <h2 class="section-title"><span>🕐</span> Pedidos recientes</h2>
+        <span class="section-link" onclick="showAdminSection('orders')">Ver todos</span>
+      </div>
+      <div id="recentOrdersList"></div>
+    </section>
+
+    <!-- ── GESTIÓN DE PEDIDOS ── -->
+    <section class="page-section" id="section-orders">
+      <div class="section-header">
+        <h2 class="section-title"><span>📦</span> Gestión de pedidos</h2>
+        <button class="btn btn-ghost btn-sm" onclick="loadAdminOrders()">
+          <i class="fas fa-sync-alt"></i> Actualizar
+        </button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" onclick="filterAdminOrders('all', this)">Todos</button>
+        <button class="tab-btn" onclick="filterAdminOrders('received', this)">🟡 Recibidos</button>
+        <button class="tab-btn" onclick="filterAdminOrders('preparing', this)">🟠 Preparando</button>
+        <button class="tab-btn" onclick="filterAdminOrders('ready', this)">🟢 Listos</button>
+        <button class="tab-btn" onclick="filterAdminOrders('delivered', this)">✅ Entregados</button>
+      </div>
+      <div id="adminOrdersList"></div>
+    </section>
+
+    <!-- ── GESTIÓN DE PRODUCTOS ── -->
+    <section class="page-section" id="section-products">
+      <div class="section-header">
+        <h2 class="section-title"><span>🛍️</span> Gestión de productos</h2>
+        <button class="btn btn-primary btn-sm" onclick="openProductForm(null)">
+          <i class="fas fa-plus"></i> Agregar producto
+        </button>
+      </div>
+      <div class="search-bar" style="max-width:340px;margin-bottom:18px">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" id="productSearch" placeholder="Buscar producto..." oninput="filterAdminProducts()">
+      </div>
+      <div id="adminProductsList"></div>
+    </section>
+
+    <!-- ── INVENTARIO ── -->
+    <section class="page-section" id="section-inventory">
+      <div class="section-header">
+        <h2 class="section-title"><span>📋</span> Control de inventario</h2>
+      </div>
+      <div id="inventoryList"></div>
+    </section>
+
+    <!-- ── ESTADÍSTICAS ── -->
+    <section class="page-section" id="section-stats">
+      <div class="section-header">
+        <h2 class="section-title"><span>📈</span> Estadísticas y reportes</h2>
+      </div>
+      <div class="stats-grid" id="fullStats"></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px">
+        <div class="chart-card">
+          <div class="chart-title">📅 Ventas por día (últimos 7 días)</div>
+          <div style="height:250px"><canvas id="salesChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">🏆 Top productos más vendidos</div>
+          <div style="height:250px"><canvas id="topProductsChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">📦 Pedidos por estado</div>
+          <div style="height:250px"><canvas id="statusChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">🗂️ Ventas por categoría</div>
+          <div style="height:250px"><canvas id="categoryChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CUPONES ── -->
+    <section class="page-section" id="section-coupons">
+      <div class="section-header">
+        <h2 class="section-title"><span>🎫</span> Cupones de descuento</h2>
+        <button class="btn btn-primary btn-sm" onclick="openCouponForm()">
+          <i class="fas fa-plus"></i> Crear cupón
+        </button>
+      </div>
+      <div id="couponsList"></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ===== MODAL: FORMULARIO PRODUCTO ===== -->
+<div class="modal-overlay" id="productFormModal">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <h2 id="productFormTitle">➕ Agregar producto</h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeAdminModal('productFormModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editProductId">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Nombre del producto *</label>
+          <input class="form-control" id="prodName" type="text" placeholder="Ej: Coca-Cola 350ml">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Descripción</label>
+          <textarea class="form-control" id="prodDesc" rows="2" placeholder="Descripción breve del producto"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio ($) *</label>
+          <input class="form-control" id="prodPrice" type="number" placeholder="3500" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stock *</label>
+          <input class="form-control" id="prodStock" type="number" placeholder="50" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoría *</label>
+          <select class="form-control" id="prodCategory">
+            <option value="Bebidas">🥤 Bebidas</option>
+            <option value="Helados">🍦 Helados</option>
+            <option value="Snacks">🍟 Snacks</option>
+            <option value="Panadería">🥐 Panadería</option>
+            <option value="Comidas rápidas">🍔 Comidas rápidas</option>
+            <option value="Útiles escolares">📚 Útiles escolares</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subcategoría</label>
+          <input class="form-control" id="prodSubcat" type="text" placeholder="Ej: Gaseosas">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Emoji del producto</label>
+          <input class="form-control" id="prodEmoji" type="text" placeholder="🍕" maxlength="4">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Color de fondo (hex)</label>
+          <input class="form-control" id="prodColor" type="color" value="#6c3fc5" style="height:42px;padding:4px">
+        </div>
+        <div class="form-group" style="grid-column:1/-1;display:flex;gap:20px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer">
+            <input type="checkbox" id="prodAvailable" checked style="width:18px;height:18px;accent-color:var(--primary)">
+            Disponible
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer">
+            <input type="checkbox" id="prodFeatured" style="width:18px;height:18px;accent-color:var(--primary)">
+            Producto destacado
+          </label>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="saveProduct()" style="margin-top:4px">
+        💾 Guardar producto
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: CONFIRMAR ELIMINACIÓN ===== -->
+<div class="modal-overlay" id="deleteConfirmModal">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-body" style="text-align:center;padding:32px 24px">
+      <div style="font-size:56px;margin-bottom:16px">🗑️</div>
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:8px">¿Eliminar producto?</h2>
+      <p style="color:var(--text-secondary);margin-bottom:24px">Esta acción no se puede deshacer.</p>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" style="flex:1" onclick="closeAdminModal('deleteConfirmModal')">Cancelar</button>
+        <button class="btn btn-danger" style="flex:1" id="confirmDeleteBtn" onclick="confirmDelete()">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: FORM CUPÓN ===== -->
+<div class="modal-overlay" id="couponFormModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h2>🎫 Crear cupón</h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeAdminModal('couponFormModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Código del cupón *</label>
+        <input class="form-control" id="couponCode" type="text" placeholder="Ej: DESCUENTO20" style="text-transform:uppercase">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo de descuento</label>
+        <select class="form-control" id="couponType">
+          <option value="percentage">Porcentaje (%)</option>
+          <option value="fixed">Valor fijo ($)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Valor del descuento *</label>
+        <input class="form-control" id="couponValue" type="number" placeholder="10" min="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Compra mínima ($)</label>
+        <input class="form-control" id="couponMin" type="number" placeholder="0" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Usos disponibles</label>
+        <input class="form-control" id="couponUses" type="number" placeholder="100" min="1">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="saveCoupon()">💾 Guardar cupón</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: COMPROBANTE AMPLIADO ===== -->
+<div class="modal-overlay" id="voucherModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h2>🧾 Comprobante de pago</h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeAdminModal('voucherModal')">✕</button>
+    </div>
+    <div class="modal-body" id="voucherModalContent">
+      <!-- Se rellena dinámicamente -->
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ─────────── ADMIN STATE ───────────
+const ADMIN = {
+  orders: [],
+  products: [],
+  coupons: [],
+  pendingDelete: null,
+  charts: {},
+  theme: localStorage.getItem('theme') || 'light'
+};
+
+function formatCurrency(n) { return '$' + Number(n).toLocaleString('es-CO'); }
+
+// ─────────── TEMA ───────────
+function initTheme() {
+  document.documentElement.setAttribute('data-theme', ADMIN.theme);
+  document.getElementById('themeToggle').querySelector('.theme-icon').textContent = ADMIN.theme === 'dark' ? '☀️' : '🌙';
+}
+document.getElementById('themeToggle').addEventListener('click', () => {
+  ADMIN.theme = ADMIN.theme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', ADMIN.theme);
+  initTheme();
+  if (ADMIN.charts.sales) renderCharts();
+});
+initTheme();
+
+// ─────────── SIDEBAR ADMIN ───────────
+function toggleAdminSidebar() {
+  const sb = document.getElementById('adminSidebar');
+  sb.classList.toggle('open');
+}
+
+// ─────────── SECCIONES ───────────
+function showAdminSection(name) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.getElementById(`section-${name}`)?.classList.add('active');
+  document.querySelectorAll('.admin-sidebar .sidebar-item').forEach(i => {
+    i.classList.toggle('active', i.dataset.section === name);
+  });
+  if (window.innerWidth <= 900) document.getElementById('adminSidebar').classList.remove('open');
+  if (name === 'orders') loadAdminOrders();
+  if (name === 'products') loadAdminProducts();
+  if (name === 'inventory') loadInventory();
+  if (name === 'stats') loadStats();
+  if (name === 'coupons') loadCoupons();
+}
+
+// ─────────── CARGA DE DATOS ───────────
+async function loadDashboard() {
+  await Promise.all([loadAdminOrdersData(), loadAdminProductsData()]);
+  renderDashboardStats();
+  renderRecentOrders();
+}
+
+async function loadAdminOrdersData() {
+  try {
+    const res = await fetch('tables/orders?limit=200&sort=created_at');
+    const data = await res.json();
+    ADMIN.orders = (data.data || []).reverse();
+    updatePendingCount();
+  } catch {}
+}
+
+async function loadAdminProductsData() {
+  try {
+    const res = await fetch('tables/products?limit=100');
+    const data = await res.json();
+    ADMIN.products = data.data || [];
+    document.getElementById('statTotalProducts').textContent = ADMIN.products.filter(p => p.available).length;
+  } catch {}
+}
+
+function renderDashboardStats() {
+  const today = new Date().toDateString();
+  const todayOrders = ADMIN.orders.filter(o => new Date(o.created_at).toDateString() === today);
+  const todaySales = todayOrders.reduce((s, o) => s + (o.total || 0), 0);
+  const pending = ADMIN.orders.filter(o => o.status === 'received' || o.status === 'preparing').length;
+
+  document.getElementById('statTotalOrders').textContent = todayOrders.length;
+  document.getElementById('statTodaySales').textContent = formatCurrency(todaySales);
+  document.getElementById('statPendingOrders').textContent = pending;
+  document.getElementById('statPendingChange').textContent = pending > 0 ? `⚠️ ${pending} por atender` : '✅ Al día';
+}
+
+function renderRecentOrders() {
+  const recent = ADMIN.orders.slice(0, 5);
+  const el = document.getElementById('recentOrdersList');
+  if (!recent.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📦</div><h3>No hay pedidos aún</h3></div>`;
+    return;
+  }
+  el.innerHTML = recent.map(o => renderAdminOrderCard(o)).join('');
+}
+
+function updatePendingCount() {
+  const pending = ADMIN.orders.filter(o => o.status === 'received' || o.status === 'preparing').length;
+  const el = document.getElementById('pendingOrdersCount');
+  if (el) { el.textContent = pending; el.style.display = pending > 0 ? '' : 'none'; }
+}
+
+// ─────────── PEDIDOS ADMIN ───────────
+async function loadAdminOrders() {
+  await loadAdminOrdersData();
+  filterAdminOrders('all', document.querySelector('#section-orders .tab-btn.active') || document.querySelector('#section-orders .tab-btn'));
+}
+
+function filterAdminOrders(filter, btn) {
+  if (btn) { document.querySelectorAll('#section-orders .tab-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+  const orders = filter === 'all' ? ADMIN.orders : ADMIN.orders.filter(o => o.status === filter);
+  const el = document.getElementById('adminOrdersList');
+  if (!orders.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📦</div><h3>Sin pedidos en este estado</h3></div>`;
+    return;
+  }
+  el.innerHTML = orders.map(o => renderAdminOrderCard(o)).join('');
+}
+
+function renderAdminOrderCard(o) {
+  let items = [];
+  try { items = JSON.parse(o.items || '[]'); } catch {}
+  const date    = new Date(o.created_at);
+  const dateStr = date.toLocaleString('es-CO', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  const payMap  = { 'qr-nequi':'📱 Nequi', 'qr-daviplata':'💜 Daviplata', 'qr-bancolombia':'🟡 Bancolombia', 'efectivo':'💵 Efectivo' };
+  const payMethod = payMap[o.payment_method] || o.payment_method || '—';
+  const statusMap = { received:'🟡 Recibido', preparing:'🟠 Preparando', ready:'🟢 Listo', delivered:'✅ Entregado' };
+
+  // Bloque de comprobante
+  const hasProof = o.payment_proof && o.payment_proof.length > 10;
+  const proofBlock = hasProof ? `
+    <div style="margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">
+        📄 Comprobante de pago enviado por el cliente:
+      </div>
+      <div style="border:2px solid ${o.payment_validated ? 'var(--success)' : 'var(--warning)'};border-radius:10px;overflow:hidden;cursor:pointer"
+           onclick="openVoucherModal('${o.id}')">
+        <img src="${o.payment_proof}"
+             style="width:100%;max-height:180px;object-fit:cover;display:block"
+             alt="Comprobante de pago"
+             onerror="this.parentElement.innerHTML='<div style=\'padding:12px;text-align:center;font-size:12px;color:var(--text-muted)\'>⚠️ No se pudo cargar la imagen</div>'">
+        <div style="padding:6px 12px;font-size:11px;font-weight:700;background:${o.payment_validated ? '#d4edda' : '#fff3cd'};color:${o.payment_validated ? '#155724' : '#856404'};display:flex;align-items:center;justify-content:space-between">
+          <span>${o.payment_validated ? '✅ Pago validado por el admin' : '⏳ Pendiente de validación'}</span>
+          <span style="text-decoration:underline;cursor:pointer">🔍 Ver ampliado</span>
+        </div>
+      </div>
+      ${!o.payment_validated ? `
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn-sm" style="flex:1;background:#d4edda;color:#155724;border:1.5px solid #28a745;font-weight:700"
+                  onclick="validatePayment('${o.id}')">
+            ✅ Validar pago
+          </button>
+          <button class="btn btn-sm" style="flex:1;background:#f8d7da;color:var(--danger);border:1.5px solid var(--danger);font-weight:700"
+                  onclick="rejectPayment('${o.id}')">
+            ❌ Rechazar
+          </button>
+        </div>` : `
+        <div style="margin-top:6px;font-size:12px;color:var(--text-muted)">
+          Validado el ${dateStr}
+        </div>`}
+    </div>` : `
+    <div style="margin-bottom:12px;padding:10px 14px;background:var(--bg-input);border-radius:var(--radius-md);border:1.5px dashed var(--border);font-size:12px;color:var(--text-muted);text-align:center">
+      ${o.payment_method === 'efectivo'
+        ? '💵 Pago en efectivo — sin comprobante digital'
+        : '📷 El cliente no ha enviado comprobante todavía'}
+    </div>`;
+
+  return `
+    <div class="order-admin-card" id="adminCard-${o.id}">
+      <!-- Cabecera del pedido -->
+      <div class="order-admin-header">
+        <div>
+          <div class="order-admin-num">${o.order_number || '#' + o.id?.slice(0,6)}</div>
+          <div class="order-admin-user">👤 <strong>${o.user_name || 'Cliente'}</strong> · ${o.user_email || ''}</div>
+          <div class="order-admin-time">🕐 ${dateStr}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:20px;font-weight:900;color:var(--primary)">${formatCurrency(o.total)}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">${payMethod}</div>
+          <span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:${o.payment_validated?'#d4edda':'#fff3cd'};color:${o.payment_validated?'#155724':'#856404'}">
+            ${o.payment_validated ? '✅ Pago OK' : '⏳ Sin validar'}
+          </span>
+        </div>
+      </div>
+
+      <!-- Productos -->
+      <div style="background:var(--bg-input);border-radius:var(--radius-md);padding:10px 12px;font-size:13px;margin-bottom:12px">
+        ${items.map(i => `
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span>${i.emoji||'•'} <strong>${i.name}</strong> × ${i.qty}</span>
+            <span style="font-weight:700;color:var(--primary)">${formatCurrency(i.price * i.qty)}</span>
+          </div>`).join('')}
+        ${o.notes ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);color:var(--text-muted);font-size:12px">📝 ${o.notes}</div>` : ''}
+      </div>
+
+      <!-- Comprobante de pago -->
+      ${proofBlock}
+
+      <!-- Estado actual + Botones -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+        <span style="font-size:13px;font-weight:700;color:var(--text-secondary)">
+          Estado: ${statusMap[o.status] || o.status}
+        </span>
+        ${o.estimated_time ? `<span style="font-size:12px;color:var(--text-muted)">⏱️ ${o.estimated_time} min estimados</span>` : ''}
+      </div>
+      <div class="status-btns">
+        <button class="status-btn s-received ${o.status==='received'?'active':''}"   onclick="updateOrderStatus('${o.id}','received')">🟡 Recibido</button>
+        <button class="status-btn s-preparing ${o.status==='preparing'?'active':''}" onclick="updateOrderStatus('${o.id}','preparing')">🟠 Preparando</button>
+        <button class="status-btn s-ready ${o.status==='ready'?'active':''}"         onclick="updateOrderStatus('${o.id}','ready')">🟢 Listo para recoger</button>
+        <button class="status-btn s-delivered ${o.status==='delivered'?'active':''}" onclick="updateOrderStatus('${o.id}','delivered')">✅ Entregado</button>
+      </div>
+    </div>
+  `;
+}
+
+async function updateOrderStatus(orderId, newStatus) {
+  try {
+    const res = await fetch(`tables/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      const idx = ADMIN.orders.findIndex(o => o.id === orderId);
+      if (idx !== -1) ADMIN.orders[idx] = updated;
+      showAdminToast('Estado actualizado', `Pedido → ${newStatus === 'received' ? '🟡 Recibido' : newStatus === 'preparing' ? '🟠 Preparando' : newStatus === 'ready' ? '🟢 Listo para recoger' : '✅ Entregado'}`, 'success');
+      updatePendingCount();
+      const activeTab = document.querySelector('#section-orders .tab-btn.active');
+      const filter = activeTab?.textContent.includes('Recibido') ? 'received' :
+                     activeTab?.textContent.includes('Preparando') ? 'preparing' :
+                     activeTab?.textContent.includes('Listo') ? 'ready' :
+                     activeTab?.textContent.includes('Entregado') ? 'delivered' : 'all';
+      filterAdminOrders(filter, activeTab);
+      renderRecentOrders();
+      if (newStatus === 'ready') {
+        showAdminToast('🟢 Notificación enviada', `El cliente fue notificado que su pedido está listo`, 'order', 5000);
+      }
+    }
+  } catch {
+    showAdminToast('Error', 'No se pudo actualizar el estado', 'error');
+  }
+}
+
+async function validatePayment(orderId) {
+  try {
+    await fetch(`tables/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payment_validated: true })
+    });
+    showAdminToast('✅ Pago validado', 'El pago fue confirmado correctamente', 'success');
+    closeAdminModal('voucherModal');
+    await loadAdminOrdersData();
+    const activeTab = document.querySelector('#section-orders .tab-btn.active');
+    filterAdminOrders('all', activeTab);
+    renderRecentOrders();
+    renderDashboardStats();
+  } catch { showAdminToast('Error', 'No se pudo validar el pago', 'error'); }
+}
+
+async function rejectPayment(orderId) {
+  if (!confirm('¿Rechazar este comprobante? El pedido volverá a estado "recibido" sin validar.')) return;
+  try {
+    await fetch(`tables/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payment_validated: false, status: 'received' })
+    });
+    showAdminToast('❌ Pago rechazado', 'Se solicitará nuevo comprobante al cliente', 'warning');
+    closeAdminModal('voucherModal');
+    await loadAdminOrdersData();
+    const activeTab = document.querySelector('#section-orders .tab-btn.active');
+    filterAdminOrders('all', activeTab);
+  } catch { showAdminToast('Error', 'No se pudo rechazar el pago', 'error'); }
+}
+
+// Modal para ver comprobante ampliado
+function openVoucherModal(orderId) {
+  const o = ADMIN.orders.find(x => x.id === orderId);
+  if (!o || !o.payment_proof) return;
+
+  let items = [];
+  try { items = JSON.parse(o.items || '[]'); } catch {}
+  const payMap = { 'qr-nequi':'📱 Nequi', 'qr-daviplata':'💜 Daviplata', 'qr-bancolombia':'🟡 Bancolombia', 'efectivo':'💵 Efectivo' };
+  const dateStr = new Date(o.created_at).toLocaleString('es-CO', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+  document.getElementById('voucherModalContent').innerHTML = `
+    <!-- Info del pedido arriba -->
+    <div style="background:linear-gradient(135deg,var(--primary),var(--secondary));color:white;border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:20px;font-weight:900">${o.order_number || '#' + o.id?.slice(0,6)}</div>
+          <div style="font-size:12px;opacity:0.85">👤 ${o.user_name || 'Cliente'} · ${o.user_email || ''}</div>
+          <div style="font-size:12px;opacity:0.85">🕐 ${dateStr}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:22px;font-weight:900">${formatCurrency(o.total)}</div>
+          <div style="font-size:12px;opacity:0.85">${payMap[o.payment_method] || o.payment_method}</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.2);font-size:12px;opacity:0.9">
+        ${items.map(i => `${i.emoji||'•'} ${i.name} ×${i.qty}`).join('  ·  ')}
+      </div>
+    </div>
+
+    <!-- Imagen del comprobante -->
+    <div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-bottom:10px">
+      📄 Comprobante enviado por el cliente:
+    </div>
+    <img src="${o.payment_proof}"
+         style="width:100%;border-radius:12px;border:2px solid var(--border);box-shadow:var(--shadow-md);display:block;margin-bottom:14px"
+         alt="Comprobante de pago">
+
+    <!-- Estado del pago -->
+    <div style="background:${o.payment_validated?'#d4edda':'#fff3cd'};border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:${o.payment_validated?'#155724':'#856404'}">
+      ${o.payment_validated
+        ? '✅ Pago ya validado — el cliente puede recoger su pedido'
+        : '⏳ Este pago está pendiente de revisión por el administrador'}
+    </div>
+
+    <!-- Botones de acción -->
+    ${!o.payment_validated ? `
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-sm" style="flex:1;background:#d4edda;color:#155724;border:1.5px solid #28a745;font-weight:700;font-size:14px;padding:12px"
+                onclick="validatePayment('${o.id}')">
+          ✅ Validar pago
+        </button>
+        <button class="btn btn-sm" style="flex:1;background:#f8d7da;color:var(--danger);border:1.5px solid var(--danger);font-weight:700;font-size:14px;padding:12px"
+                onclick="rejectPayment('${o.id}')">
+          ❌ Rechazar
+        </button>
+      </div>` : `
+      <button class="btn btn-ghost btn-full" onclick="closeAdminModal('voucherModal')">Cerrar</button>`}
+  `;
+  openAdminModal('voucherModal');
+}
+
+// ─────────── PRODUCTOS ADMIN ───────────
+async function loadAdminProducts() {
+  await loadAdminProductsData();
+  renderAdminProducts(ADMIN.products);
+}
+
+function filterAdminProducts() {
+  const q = document.getElementById('productSearch')?.value.toLowerCase();
+  const filtered = q ? ADMIN.products.filter(p => p.name.toLowerCase().includes(q) || p.category?.toLowerCase().includes(q)) : ADMIN.products;
+  renderAdminProducts(filtered);
+}
+
+function renderAdminProducts(products) {
+  const el = document.getElementById('adminProductsList');
+  if (!products.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🛍️</div><h3>Sin productos</h3></div>`;
+    return;
+  }
+  el.innerHTML = products.map(p => `
+    <div class="product-admin-row">
+      <div class="prod-admin-img" style="background:${p.image_color||'#e0e0e0'}22">${p.image_emoji||'🛍️'}</div>
+      <div class="prod-admin-info">
+        <div class="prod-admin-name">${p.name}</div>
+        <div class="prod-admin-meta">${p.category} · ${p.subcategory || ''} · Stock: <strong>${p.stock}</strong></div>
+        <div class="prod-admin-meta">${(p.rating||4.5).toFixed(1)}⭐ · ${p.sales_count||0} vendidos</div>
+      </div>
+      <span class="prod-admin-price">${formatCurrency(p.price)}</span>
+      <div style="display:flex;align-items:center;gap:6px;margin-right:10px">
+        <label class="toggle-switch" title="${p.available ? 'Disponible' : 'No disponible'}">
+          <input type="checkbox" ${p.available ? 'checked' : ''} onchange="toggleProductAvailability('${p.id}', this.checked)">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="prod-admin-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openProductForm('${p.id}')" title="Editar">✏️</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="deleteProduct('${p.id}')" title="Eliminar">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openProductForm(id) {
+  document.getElementById('productFormTitle').textContent = id ? '✏️ Editar producto' : '➕ Agregar producto';
+  document.getElementById('editProductId').value = id || '';
+
+  if (id) {
+    const p = ADMIN.products.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('prodName').value = p.name;
+    document.getElementById('prodDesc').value = p.description || '';
+    document.getElementById('prodPrice').value = p.price;
+    document.getElementById('prodStock').value = p.stock;
+    document.getElementById('prodCategory').value = p.category;
+    document.getElementById('prodSubcat').value = p.subcategory || '';
+    document.getElementById('prodEmoji').value = p.image_emoji || '';
+    document.getElementById('prodColor').value = p.image_color || '#6c3fc5';
+    document.getElementById('prodAvailable').checked = p.available;
+    document.getElementById('prodFeatured').checked = p.featured;
+  } else {
+    document.getElementById('prodName').value = '';
+    document.getElementById('prodDesc').value = '';
+    document.getElementById('prodPrice').value = '';
+    document.getElementById('prodStock').value = '';
+    document.getElementById('prodSubcat').value = '';
+    document.getElementById('prodEmoji').value = '';
+    document.getElementById('prodColor').value = '#6c3fc5';
+    document.getElementById('prodAvailable').checked = true;
+    document.getElementById('prodFeatured').checked = false;
+  }
+  openAdminModal('productFormModal');
+}
+
+async function saveProduct() {
+  const id = document.getElementById('editProductId').value;
+  const name = document.getElementById('prodName').value.trim();
+  const price = parseFloat(document.getElementById('prodPrice').value);
+  const stock = parseInt(document.getElementById('prodStock').value);
+  if (!name || isNaN(price) || isNaN(stock)) { showAdminToast('Error', 'Completa los campos requeridos', 'error'); return; }
+
+  const data = {
+    name, price, stock,
+    description: document.getElementById('prodDesc').value.trim(),
+    category: document.getElementById('prodCategory').value,
+    subcategory: document.getElementById('prodSubcat').value.trim(),
+    image_emoji: document.getElementById('prodEmoji').value.trim() || '🛍️',
+    image_color: document.getElementById('prodColor').value,
+    available: document.getElementById('prodAvailable').checked,
+    featured: document.getElementById('prodFeatured').checked,
+    rating: 4.5, sales_count: 0
+  };
+
+  try {
+    let res;
+    if (id) {
+      res = await fetch(`tables/products/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    } else {
+      data.id = 'p-' + Date.now();
+      res = await fetch('tables/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    }
+    if (res.ok) {
+      showAdminToast('Guardado', id ? '✅ Producto actualizado' : '✅ Producto creado', 'success');
+      closeAdminModal('productFormModal');
+      await loadAdminProducts();
+      await loadAdminProductsData();
+    }
+  } catch { showAdminToast('Error', 'No se pudo guardar el producto', 'error'); }
+}
+
+async function toggleProductAvailability(id, available) {
+  try {
+    await fetch(`tables/products/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ available }) });
+    showAdminToast('Actualizado', available ? '✅ Producto activado' : '❌ Producto desactivado', available ? 'success' : 'warning');
+    await loadAdminProductsData();
+  } catch {}
+}
+
+function deleteProduct(id) {
+  ADMIN.pendingDelete = id;
+  openAdminModal('deleteConfirmModal');
+}
+
+async function confirmDelete() {
+  if (!ADMIN.pendingDelete) return;
+  try {
+    await fetch(`tables/products/${ADMIN.pendingDelete}`, { method: 'DELETE' });
+    ADMIN.pendingDelete = null;
+    showAdminToast('Eliminado', '🗑️ Producto eliminado', 'success');
+    closeAdminModal('deleteConfirmModal');
+    await loadAdminProducts();
+  } catch { showAdminToast('Error', 'No se pudo eliminar', 'error'); }
+}
+
+// ─────────── INVENTARIO ───────────
+function loadInventory() {
+  const el = document.getElementById('inventoryList');
+  const sorted = [...ADMIN.products].sort((a, b) => a.stock - b.stock);
+  el.innerHTML = `
+    <div style="background:var(--bg-card);border-radius:var(--radius-lg);border:1.5px solid var(--border);overflow:hidden">
+      <div style="padding:14px 18px;background:var(--bg-input);font-size:12px;font-weight:700;display:grid;grid-template-columns:auto 1fr 80px 80px 100px;gap:10px;color:var(--text-muted)">
+        <span></span><span>Producto</span><span>Precio</span><span>Stock</span><span>Estado</span>
+      </div>
+      ${sorted.map(p => {
+        const low = p.stock <= 5;
+        const out = p.stock === 0;
+        return `
+          <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:auto 1fr 80px 80px 100px;gap:10px;align-items:center;font-size:13px">
+            <span style="font-size:24px">${p.image_emoji||'🛍️'}</span>
+            <div>
+              <div style="font-weight:700">${p.name}</div>
+              <div style="color:var(--text-muted);font-size:11px">${p.category}</div>
+            </div>
+            <span style="font-weight:700;color:var(--primary)">${formatCurrency(p.price)}</span>
+            <span style="font-weight:800;color:${out?'var(--danger)':low?'var(--warning)':'var(--success)'}">${p.stock}</span>
+            <span style="padding:4px 10px;border-radius:var(--radius-full);font-size:11px;font-weight:700;background:${out?'#ffe0e0':low?'#fff3cd':'#d4edda'};color:${out?'var(--danger)':low?'#856404':'#155724'}">
+              ${out?'❌ Agotado':low?'⚠️ Bajo':'✅ OK'}
+            </span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ─────────── ESTADÍSTICAS Y GRÁFICOS ───────────
+function loadStats() {
+  const today = new Date().toDateString();
+  const week = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const month = Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+  const todayOrders = ADMIN.orders.filter(o => new Date(o.created_at).toDateString() === today);
+  const weekOrders = ADMIN.orders.filter(o => o.created_at > week);
+  const monthOrders = ADMIN.orders.filter(o => o.created_at > month);
+
+  const todaySales = todayOrders.reduce((s, o) => s + (o.total||0), 0);
+  const weekSales = weekOrders.reduce((s, o) => s + (o.total||0), 0);
+  const monthSales = monthOrders.reduce((s, o) => s + (o.total||0), 0);
+  const totalSales = ADMIN.orders.reduce((s, o) => s + (o.total||0), 0);
+
+  document.getElementById('fullStats').innerHTML = `
+    <div class="stat-card"><div class="stat-icon" style="background:rgba(108,63,197,0.12);color:var(--primary)">📅</div><div class="stat-value">${formatCurrency(todaySales)}</div><div class="stat-label">Ventas hoy</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:rgba(59,130,246,0.12);color:var(--info)">📆</div><div class="stat-value">${formatCurrency(weekSales)}</div><div class="stat-label">Ventas semana</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:rgba(34,197,94,0.12);color:var(--success)">🗓️</div><div class="stat-value">${formatCurrency(monthSales)}</div><div class="stat-label">Ventas mes</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:rgba(255,107,53,0.12);color:var(--secondary)">💰</div><div class="stat-value">${formatCurrency(totalSales)}</div><div class="stat-label">Total ganancias</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:rgba(108,63,197,0.12);color:var(--primary)">📦</div><div class="stat-value">${ADMIN.orders.length}</div><div class="stat-label">Total pedidos</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:rgba(245,158,11,0.12);color:var(--warning)">✅</div><div class="stat-value">${ADMIN.orders.filter(o=>o.status==='delivered').length}</div><div class="stat-label">Entregados</div></div>
+  `;
+  renderCharts();
+}
+
+function renderCharts() {
+  const isDark = ADMIN.theme === 'dark';
+  const textColor = isDark ? '#b8b0d8' : '#4a4a6a';
+  const gridColor = isDark ? '#2d2850' : '#e8e0f5';
+
+  Chart.defaults.color = textColor;
+
+  // Ventas últimos 7 días
+  const days = [];
+  const sales = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const label = d.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric' });
+    days.push(label);
+    const dayOrders = ADMIN.orders.filter(o => new Date(o.created_at).toDateString() === d.toDateString());
+    sales.push(dayOrders.reduce((s, o) => s + (o.total||0), 0));
+  }
+
+  if (ADMIN.charts.sales) ADMIN.charts.sales.destroy();
+  ADMIN.charts.sales = new Chart(document.getElementById('salesChart'), {
+    type: 'bar',
+    data: { labels: days, datasets: [{ label: 'Ventas ($)', data: sales, backgroundColor: 'rgba(108,63,197,0.7)', borderRadius: 8, borderSkipped: false }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: gridColor } }, x: { grid: { display: false } } } }
+  });
+
+  // Top productos
+  const topProds = [...ADMIN.products].sort((a, b) => b.sales_count - a.sales_count).slice(0, 6);
+  if (ADMIN.charts.top) ADMIN.charts.top.destroy();
+  ADMIN.charts.top = new Chart(document.getElementById('topProductsChart'), {
+    type: 'bar',
+    data: { labels: topProds.map(p => p.name.slice(0,12)), datasets: [{ label: 'Ventas', data: topProds.map(p => p.sales_count||0), backgroundColor: ['#6c3fc5','#ff6b35','#22c55e','#3b82f6','#f59e0b','#ef4444'], borderRadius: 6 }] },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: gridColor } }, y: { grid: { display: false } } } }
+  });
+
+  // Pedidos por estado
+  const statusCounts = { received: 0, preparing: 0, ready: 0, delivered: 0 };
+  ADMIN.orders.forEach(o => { if (statusCounts[o.status] !== undefined) statusCounts[o.status]++; });
+  if (ADMIN.charts.status) ADMIN.charts.status.destroy();
+  ADMIN.charts.status = new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['🟡 Recibido', '🟠 Preparando', '🟢 Listo', '✅ Entregado'],
+      datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#ffc107','#ff9800','#22c55e','#3b82f6'], borderWidth: 0 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom' } } }
+  });
+
+  // Ventas por categoría
+  const catSales = {};
+  ADMIN.orders.forEach(o => {
+    try {
+      JSON.parse(o.items||'[]').forEach(item => {
+        const p = ADMIN.products.find(x => x.id === item.id);
+        if (p) catSales[p.category] = (catSales[p.category] || 0) + item.qty * item.price;
+      });
+    } catch {}
+  });
+  if (ADMIN.charts.cats) ADMIN.charts.cats.destroy();
+  ADMIN.charts.cats = new Chart(document.getElementById('categoryChart'), {
+    type: 'pie',
+    data: {
+      labels: Object.keys(catSales).map(k => k.slice(0,12)),
+      datasets: [{ data: Object.values(catSales), backgroundColor: ['#6c3fc5','#ff6b35','#22c55e','#3b82f6','#f59e0b','#ef4444'], borderWidth: 0 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+  });
+}
+
+// ─────────── CUPONES ───────────
+async function loadCoupons() {
+  try {
+    const res = await fetch('tables/coupons?limit=100');
+    const data = await res.json();
+    ADMIN.coupons = data.data || [];
+    renderCoupons();
+  } catch {}
+}
+
+function renderCoupons() {
+  const el = document.getElementById('couponsList');
+  if (!ADMIN.coupons.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🎫</div><h3>Sin cupones</h3><p>Crea el primero</p></div>`;
+    return;
+  }
+  el.innerHTML = ADMIN.coupons.map(c => `
+    <div class="product-admin-row">
+      <div style="font-size:32px">🎫</div>
+      <div class="prod-admin-info">
+        <div class="prod-admin-name" style="font-size:16px;letter-spacing:1px">${c.code}</div>
+        <div class="prod-admin-meta">
+          ${c.discount_type === 'percentage' ? `${c.discount_value}% de descuento` : `${formatCurrency(c.discount_value)} de descuento`}
+          · Mínimo: ${formatCurrency(c.min_purchase)}
+          · Usos restantes: <strong>${c.uses_left}</strong>
+        </div>
+      </div>
+      <span style="padding:4px 12px;border-radius:var(--radius-full);font-size:12px;font-weight:700;background:${c.active?'#d4edda':'#f8d7da'};color:${c.active?'#155724':'var(--danger)'}">
+        ${c.active ? '✅ Activo' : '❌ Inactivo'}
+      </span>
+    </div>
+  `).join('');
+}
+
+function openCouponForm() { openAdminModal('couponFormModal'); }
+
+async function saveCoupon() {
+  const code = document.getElementById('couponCode').value.trim().toUpperCase();
+  const value = parseFloat(document.getElementById('couponValue').value);
+  if (!code || isNaN(value)) { showAdminToast('Error', 'Completa los campos requeridos', 'error'); return; }
+
+  const data = {
+    id: 'c-' + Date.now(), code,
+    discount_type: document.getElementById('couponType').value,
+    discount_value: value,
+    min_purchase: parseFloat(document.getElementById('couponMin').value) || 0,
+    uses_left: parseInt(document.getElementById('couponUses').value) || 100,
+    active: true
+  };
+  try {
+    await fetch('tables/coupons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    showAdminToast('Cupón creado', `✅ Código ${code} listo`, 'success');
+    closeAdminModal('couponFormModal');
+    await loadCoupons();
+  } catch {}
+}
+
+// ─────────── UTILS ADMIN ───────────
+function openAdminModal(id) {
+  document.getElementById(id)?.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeAdminModal(id) {
+  document.getElementById(id)?.classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.querySelectorAll('.modal-overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if (e.target === ov) closeAdminModal(ov.id); });
+});
+
+function showAdminToast(title, msg, type = 'info', duration = 3500) {
+  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️', order: '🔔' };
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `<div class="toast-icon">${icons[type]||'📢'}</div><div class="toast-text"><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div><button class="toast-close" onclick="this.parentElement.remove()">✕</button>`;
+  container.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); }, duration);
+}
+
+async function refreshAll() {
+  showAdminToast('Actualizando', '🔄 Cargando datos...', 'info', 2000);
+  await loadDashboard();
+  const active = document.querySelector('.admin-sidebar .sidebar-item.active')?.dataset.section;
+  if (active) showAdminSection(active);
+}
+
+// ─────────── INIT ───────────
+async function initAdmin() {
+  await loadDashboard();
+  // Auto-actualización cada 30s
+  setInterval(async () => {
+    await loadAdminOrdersData();
+    updatePendingCount();
+    renderRecentOrders();
+    renderDashboardStats();
+  }, 30000);
+}
+document.addEventListener('DOMContentLoaded', initAdmin);
+</script>
+</body>
+</html>

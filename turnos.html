@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pantalla de Turnos · Tienda Escolar</title>
+  <meta name="theme-color" content="#0f0e1a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: 'Inter', system-ui, sans-serif; background: #0a0818; color: #f0edff; overflow: hidden; }
+
+    /* ===== VARIABLES ===== */
+    :root {
+      --primary: #6c3fc5;
+      --secondary: #ff6b35;
+      --accent: #ffd60a;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --ready-glow: rgba(34, 197, 94, 0.5);
+      --preparing-glow: rgba(245, 158, 11, 0.5);
+    }
+
+    /* ===== TOPBAR ===== */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; height: 72px;
+      background: linear-gradient(135deg, #13112a 0%, #1a1440 100%);
+      border-bottom: 1px solid rgba(108,63,197,0.3);
+      display: flex; align-items: center; padding: 0 28px; gap: 20px;
+      z-index: 100; box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+    .topbar-logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .logo-text { font-size: 18px; font-weight: 800; background: linear-gradient(135deg, #a78bfa, var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .logo-sub { font-size: 11px; color: #7070a0; font-weight: 500; }
+    .topbar-center { flex: 1; text-align: center; }
+    .topbar-title { font-size: 22px; font-weight: 900; color: #f0edff; letter-spacing: 2px; text-transform: uppercase; }
+    .topbar-subtitle { font-size: 12px; color: #7070a0; letter-spacing: 1px; }
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .clock { font-size: 28px; font-weight: 900; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: 2px; }
+    .date-display { font-size: 11px; color: #7070a0; text-align: right; }
+    .store-status { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; }
+    .store-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--success); animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ===== MAIN LAYOUT ===== */
+    .main { display: flex; height: calc(100vh - 72px); margin-top: 72px; gap: 0; }
+
+    /* ===== TURNO ACTUAL (izquierda grande) ===== */
+    .current-turn-panel {
+      width: 44%; flex-shrink: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 28px; border-right: 1px solid rgba(108,63,197,0.2);
+      position: relative; overflow: hidden;
+      background: radial-gradient(ellipse at center, #1a1440 0%, #0a0818 70%);
+    }
+    .current-turn-panel::before {
+      content: ''; position: absolute; inset: -50%;
+      background: radial-gradient(circle at center, rgba(108,63,197,0.08) 0%, transparent 60%);
+      animation: rotate 20s linear infinite;
+    }
+    @keyframes rotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+    .current-label {
+      font-size: 13px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 16px; z-index: 1;
+    }
+    .current-order-num {
+      font-size: clamp(80px, 12vw, 140px);
+      font-weight: 900;
+      background: linear-gradient(135deg, #a78bfa, var(--secondary));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      line-height: 1; z-index: 1; text-align: center;
+      filter: drop-shadow(0 0 40px rgba(108,63,197,0.5));
+      animation: numPulse 2s ease-in-out infinite;
+    }
+    @keyframes numPulse { 0%,100%{filter:drop-shadow(0 0 30px rgba(108,63,197,0.4))} 50%{filter:drop-shadow(0 0 60px rgba(108,63,197,0.8))} }
+
+    .current-status-badge {
+      margin: 18px 0 14px;
+      padding: 10px 28px;
+      border-radius: 999px;
+      font-size: 18px; font-weight: 800;
+      z-index: 1; letter-spacing: 1px;
+    }
+    .badge-ready     { background: rgba(34,197,94,0.2);  color: var(--success); border: 2px solid var(--success); animation: readyGlow 1.5s infinite; }
+    .badge-preparing { background: rgba(245,158,11,0.15); color: var(--warning); border: 2px solid var(--warning); }
+    .badge-received  { background: rgba(108,63,197,0.15); color: #a78bfa;        border: 2px solid #6c3fc5; }
+    .badge-delivered { background: rgba(34,197,94,0.1);   color: var(--success); border: 2px solid var(--success); }
+    @keyframes readyGlow { 0%,100%{box-shadow:0 0 0 0 var(--ready-glow)} 50%{box-shadow:0 0 0 16px rgba(34,197,94,0)} }
+
+    .current-client-name {
+      font-size: 20px; font-weight: 700; color: #c4b5fd; z-index: 1;
+      max-width: 300px; text-align: center; margin-bottom: 8px;
+    }
+    .current-items {
+      font-size: 13px; color: #7070a0; z-index: 1; text-align: center;
+      max-width: 340px; line-height: 1.7;
+    }
+    .current-time-bar {
+      margin-top: 20px; z-index: 1; width: 80%; max-width: 280px;
+    }
+    .time-bar-label { font-size: 11px; color: #7070a0; display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .time-bar-track { height: 6px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; }
+    .time-bar-fill  { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 999px; transition: width 1s linear; }
+
+    .no-active-order {
+      text-align: center; z-index: 1;
+    }
+    .no-active-order .big-icon { font-size: 80px; margin-bottom: 16px; opacity: 0.4; }
+    .no-active-order h2 { font-size: 22px; font-weight: 700; color: #4a4a6a; margin-bottom: 8px; }
+    .no-active-order p  { font-size: 14px; color: #3a3a5a; }
+
+    /* ===== LISTA DE TURNOS (derecha) ===== */
+    .turns-panel {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden;
+      background: #0d0b1e;
+    }
+
+    .turns-header {
+      padding: 18px 22px 10px;
+      border-bottom: 1px solid rgba(108,63,197,0.2);
+      flex-shrink: 0;
+    }
+    .turns-header h2 { font-size: 16px; font-weight: 800; color: #f0edff; margin-bottom: 6px; }
+
+    .turns-tabs { display: flex; gap: 6px; }
+    .turns-tab {
+      padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 700;
+      border: 1.5px solid rgba(108,63,197,0.3); background: transparent;
+      color: #7070a0; cursor: pointer; transition: all 0.2s;
+    }
+    .turns-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .turns-tab:hover { border-color: var(--primary); color: #a78bfa; }
+
+    .turns-list {
+      flex: 1; overflow-y: auto; padding: 14px 18px;
+      display: flex; flex-direction: column; gap: 10px;
+      scrollbar-width: thin; scrollbar-color: #2d2850 #0d0b1e;
+    }
+    .turns-list::-webkit-scrollbar { width: 4px; }
+    .turns-list::-webkit-scrollbar-track { background: #0d0b1e; }
+    .turns-list::-webkit-scrollbar-thumb { background: #2d2850; border-radius: 4px; }
+
+    /* ===== TARJETA DE TURNO ===== */
+    .turn-card {
+      border-radius: 14px; padding: 14px 16px;
+      border: 1.5px solid rgba(255,255,255,0.06);
+      transition: all 0.3s;
+      display: flex; align-items: center; gap: 14px;
+      position: relative; overflow: hidden;
+      animation: slideIn 0.4s ease-out;
+    }
+    @keyframes slideIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+
+    .turn-card.tc-received  { background: rgba(108,63,197,0.08); border-color: rgba(108,63,197,0.25); }
+    .turn-card.tc-preparing { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.3); }
+    .turn-card.tc-ready     { background: rgba(34,197,94,0.1);   border-color: rgba(34,197,94,0.4); animation: slideIn 0.4s ease-out, cardGlow 2s ease-in-out infinite; }
+    .turn-card.tc-delivered { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08); opacity: 0.65; }
+    @keyframes cardGlow { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} 50%{box-shadow:0 0 16px 2px rgba(34,197,94,0.2)} }
+
+    .turn-num {
+      width: 54px; height: 54px; border-radius: 12px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 900; letter-spacing: -1px;
+    }
+    .turn-num.n-received  { background: rgba(108,63,197,0.2); color: #a78bfa; }
+    .turn-num.n-preparing { background: rgba(245,158,11,0.15); color: var(--warning); }
+    .turn-num.n-ready     { background: rgba(34,197,94,0.15);  color: var(--success); }
+    .turn-num.n-delivered { background: rgba(255,255,255,0.06); color: #4a4a6a; }
+
+    .turn-info { flex: 1; min-width: 0; }
+    .turn-client { font-size: 14px; font-weight: 700; color: #e0d8ff; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .turn-products { font-size: 12px; color: #6060a0; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .turn-total { font-size: 13px; font-weight: 800; color: #7c5fc8; margin-top: 3px; }
+
+    .turn-status-pill {
+      padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 800;
+      white-space: nowrap; flex-shrink: 0; letter-spacing: 0.3px;
+    }
+    .pill-received  { background: rgba(108,63,197,0.2); color: #a78bfa; }
+    .pill-preparing { background: rgba(245,158,11,0.15); color: var(--warning); }
+    .pill-ready     { background: rgba(34,197,94,0.15);  color: var(--success); animation: pillPulse 1.5s infinite; }
+    .pill-delivered { background: rgba(255,255,255,0.06); color: #4a4a6a; }
+    @keyframes pillPulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+    /* ===== INDICADOR LISTO GRANDE ===== */
+    .ready-alert {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: linear-gradient(135deg, #155724, #1a7a36);
+      border: 2px solid var(--success);
+      border-radius: 16px; padding: 16px 32px;
+      font-size: 20px; font-weight: 900; color: white;
+      box-shadow: 0 0 40px rgba(34,197,94,0.5);
+      animation: readyAlert 0.5s ease-out, readyGlow2 1.5s infinite;
+      z-index: 999; text-align: center; min-width: 300px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .ready-alert .ra-num { font-size: 32px; font-weight: 900; }
+    @keyframes readyAlert { from{opacity:0;transform:translateX(-50%) scale(0.8)} to{opacity:1;transform:translateX(-50%) scale(1)} }
+    @keyframes readyGlow2 { 0%,100%{box-shadow:0 0 20px rgba(34,197,94,0.4)} 50%{box-shadow:0 0 60px rgba(34,197,94,0.7)} }
+
+    /* ===== CONTADOR DE TURNOS ===== */
+    .counters-bar {
+      display: flex; gap: 0;
+      border-top: 1px solid rgba(108,63,197,0.2);
+      flex-shrink: 0;
+    }
+    .counter-item {
+      flex: 1; text-align: center; padding: 12px 8px;
+      border-right: 1px solid rgba(108,63,197,0.15);
+      background: rgba(0,0,0,0.2);
+    }
+    .counter-item:last-child { border-right: none; }
+    .counter-num { font-size: 26px; font-weight: 900; }
+    .counter-label { font-size: 10px; font-weight: 600; letter-spacing: 0.5px; color: #6060a0; text-transform: uppercase; margin-top: 2px; }
+    .cn-received  { color: #a78bfa; }
+    .cn-preparing { color: var(--warning); }
+    .cn-ready     { color: var(--success); }
+    .cn-delivered { color: #4a4a6a; }
+
+    /* ===== DECORACIÓN ===== */
+    .bg-orb {
+      position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+      filter: blur(80px); opacity: 0.12;
+    }
+    .orb1 { width: 400px; height: 400px; background: var(--primary); top: -100px; left: -100px; }
+    .orb2 { width: 300px; height: 300px; background: var(--secondary); bottom: -80px; right: 200px; }
+    .orb3 { width: 200px; height: 200px; background: var(--success); bottom: 100px; left: 40%; }
+
+    /* ===== EMPTY ===== */
+    .empty-turns { text-align: center; padding: 40px 20px; color: #3a3a5a; }
+    .empty-turns .ei { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+    .empty-turns p { font-size: 14px; }
+
+    /* ===== RESPONSIVE ===== */
+    @media(max-width: 768px) {
+      .main { flex-direction: column; overflow: auto; }
+      .current-turn-panel { width: 100%; min-height: 55vh; border-right: none; border-bottom: 1px solid rgba(108,63,197,0.2); }
+      .current-order-num { font-size: 80px; }
+      .topbar { padding: 0 16px; }
+      .topbar-center .topbar-title { font-size: 15px; }
+      .clock { font-size: 20px; }
+      .logo-text { display: none; }
+    }
+  </style>
+</head>
+<body>
+<!-- Orbs decorativos -->
+<div class="bg-orb orb1"></div>
+<div class="bg-orb orb2"></div>
+<div class="bg-orb orb3"></div>
+
+<!-- ===== TOPBAR ===== -->
+<header class="topbar">
+  <div class="topbar-logo">
+    <div class="logo-icon">🎒</div>
+    <div>
+      <div class="logo-text">Tienda Escolar</div>
+      <div class="logo-sub">Inteligente</div>
+    </div>
+  </div>
+  <div class="topbar-center">
+    <div class="topbar-title">🎫 Pantalla de Turnos</div>
+    <div class="topbar-subtitle" id="topSubtitle">Actualización en tiempo real</div>
+  </div>
+  <div class="topbar-right">
+    <div class="store-status">
+      <div class="store-dot" id="storeDot"></div>
+      <span id="storeStatusText" style="color:#7070a0">—</span>
+    </div>
+    <div>
+      <div class="clock" id="clockDisplay">00:00</div>
+      <div class="date-display" id="dateDisplay"></div>
+    </div>
+  </div>
+</header>
+
+<!-- ===== MAIN ===== -->
+<div class="main">
+
+  <!-- PANEL IZQUIERDO: TURNO ACTUAL -->
+  <div class="current-turn-panel" id="currentTurnPanel">
+    <div class="no-active-order" id="noOrderMsg">
+      <div class="big-icon">🎫</div>
+      <h2>Sin turnos activos</h2>
+      <p>Los pedidos aparecerán aquí cuando sean recibidos</p>
+    </div>
+    <!-- Contenido del turno activo (se rellena dinámicamente) -->
+    <div id="activeTurnContent" style="display:none;align-items:center;justify-content:center;flex-direction:column;z-index:1;width:100%;text-align:center">
+      <div class="current-label">⚡ TURNO EN CURSO</div>
+      <div class="current-order-num" id="activeOrderNum">—</div>
+      <div class="current-status-badge" id="activeStatusBadge">—</div>
+      <div class="current-client-name" id="activeClientName">—</div>
+      <div class="current-items" id="activeItemsList">—</div>
+      <div class="current-time-bar" id="activeTimeBar" style="display:none">
+        <div class="time-bar-label">
+          <span>⏱️ Tiempo estimado</span>
+          <span id="activeTimeLabel">— min</span>
+        </div>
+        <div class="time-bar-track">
+          <div class="time-bar-fill" id="activeTimeFill" style="width:50%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL DERECHO: LISTA DE TURNOS -->
+  <div class="turns-panel">
+
+    <div class="turns-header">
+      <h2>📋 Cola de pedidos</h2>
+      <div class="turns-tabs">
+        <button class="turns-tab active" onclick="setTurnFilter('all', this)">Todos</button>
+        <button class="turns-tab" onclick="setTurnFilter('received', this)">🟡 Recibidos</button>
+        <button class="turns-tab" onclick="setTurnFilter('preparing', this)">🟠 Preparando</button>
+        <button class="turns-tab" onclick="setTurnFilter('ready', this)">🟢 Listos</button>
+        <button class="turns-tab" onclick="setTurnFilter('delivered', this)">✅ Entregados</button>
+      </div>
+    </div>
+
+    <div class="turns-list" id="turnsList">
+      <div class="empty-turns">
+        <div class="ei">📦</div>
+        <p>No hay pedidos registrados aún</p>
+      </div>
+    </div>
+
+    <!-- Contadores -->
+    <div class="counters-bar" id="countersBar">
+      <div class="counter-item">
+        <div class="counter-num cn-received" id="cnt-received">0</div>
+        <div class="counter-label">Recibidos</div>
+      </div>
+      <div class="counter-item">
+        <div class="counter-num cn-preparing" id="cnt-preparing">0</div>
+        <div class="counter-label">Preparando</div>
+      </div>
+      <div class="counter-item">
+        <div class="counter-num cn-ready" id="cnt-ready">0</div>
+        <div class="counter-label">Listos</div>
+      </div>
+      <div class="counter-item">
+        <div class="counter-num cn-delivered" id="cnt-delivered">0</div>
+        <div class="counter-label">Entregados</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Alerta flotante cuando un turno está listo -->
+<div class="ready-alert" id="readyAlert" style="display:none">
+  <span style="font-size:32px">🔔</span>
+  <div>
+    <div style="font-size:13px;opacity:0.85;font-weight:600">TURNO LISTO PARA RECOGER</div>
+    <div class="ra-num" id="readyAlertNum">#0000</div>
+    <div style="font-size:13px;opacity:0.85" id="readyAlertName">Cliente</div>
+  </div>
+</div>
+
+<script>
+// ─────────── ESTADO ───────────
+const TURNS = {
+  orders: [],
+  filter: 'all',
+  currentActiveId: null,
+  lastReadyIds: new Set(),
+  pollInterval: null
+};
+
+function formatCurrency(n) { return '$' + Number(n).toLocaleString('es-CO'); }
+
+const STATUS_MAP = {
+  received:  { icon: '🟡', label: 'Pedido recibido',   pill: 'pill-received',  card: 'tc-received',  num: 'n-received'  },
+  preparing: { icon: '🟠', label: 'En preparación',    pill: 'pill-preparing', card: 'tc-preparing', num: 'n-preparing' },
+  ready:     { icon: '🟢', label: 'Listo para recoger', pill: 'pill-ready',     card: 'tc-ready',     num: 'n-ready'     },
+  delivered: { icon: '✅', label: 'Entregado',          pill: 'pill-delivered', card: 'tc-delivered', num: 'n-delivered' }
+};
+
+// ─────────── RELOJ ───────────
+function updateClock() {
+  const now  = new Date();
+  const h    = String(now.getHours()).padStart(2, '0');
+  const m    = String(now.getMinutes()).padStart(2, '0');
+  const s    = String(now.getSeconds()).padStart(2, '0');
+  document.getElementById('clockDisplay').textContent = `${h}:${m}:${s}`;
+  document.getElementById('dateDisplay').textContent = now.toLocaleDateString('es-CO', { weekday:'short', day:'numeric', month:'short' });
+
+  const day  = now.getDay();
+  const hour = now.getHours();
+  const open = day >= 1 && day <= 5 && hour >= 6 && hour < 16;
+  document.getElementById('storeDot').style.background   = open ? '#22c55e' : '#ef4444';
+  document.getElementById('storeStatusText').textContent = open ? '⚡ Tienda Abierta' : '🔒 Cerrada';
+  document.getElementById('storeStatusText').style.color = open ? '#22c55e' : '#ef4444';
+
+  // Subtítulo con última actualización
+  document.getElementById('topSubtitle').textContent =
+    `Última actualización: ${h}:${m}:${s}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─────────── CARGAR PEDIDOS ───────────
+async function loadTurns() {
+  try {
+    const res  = await fetch('tables/orders?limit=200&sort=created_at');
+    const data = await res.json();
+    const prev = new Map(TURNS.orders.map(o => [o.id, o.status]));
+    TURNS.orders = (data.data || []).reverse(); // más recientes primero
+
+    // Detectar pedidos recién pasados a "ready"
+    TURNS.orders.forEach(o => {
+      if (o.status === 'ready' && prev.get(o.id) !== 'ready' && !TURNS.lastReadyIds.has(o.id)) {
+        TURNS.lastReadyIds.add(o.id);
+        showReadyAlert(o);
+        playTurnSound();
+      }
+    });
+
+    renderCurrentTurn();
+    renderTurnsList();
+    renderCounters();
+  } catch (err) {
+    console.error('Error cargando turnos', err);
+  }
+}
+
+// ─────────── TURNO ACTIVO (izquierda) ───────────
+function renderCurrentTurn() {
+  // Prioridad: ready > preparing > received
+  const priority = ['ready', 'preparing', 'received'];
+  let active = null;
+  for (const s of priority) {
+    active = TURNS.orders.find(o => o.status === s);
+    if (active) break;
+  }
+
+  const noMsg = document.getElementById('noOrderMsg');
+  const activeDiv = document.getElementById('activeTurnContent');
+
+  if (!active) {
+    noMsg.style.display = 'block';
+    activeDiv.style.display = 'none';
+    TURNS.currentActiveId = null;
+    return;
+  }
+
+  noMsg.style.display = 'none';
+  activeDiv.style.display = 'flex';
+  TURNS.currentActiveId = active.id;
+
+  // Número
+  document.getElementById('activeOrderNum').textContent = active.order_number || '#' + active.id?.slice(0,6);
+
+  // Badge de estado
+  const si = STATUS_MAP[active.status] || STATUS_MAP.received;
+  const badge = document.getElementById('activeStatusBadge');
+  badge.textContent = `${si.icon} ${si.label.toUpperCase()}`;
+  badge.className = `current-status-badge badge-${active.status}`;
+
+  // Cliente
+  document.getElementById('activeClientName').textContent = `👤 ${active.user_name || 'Cliente'}`;
+
+  // Productos
+  let items = [];
+  try { items = JSON.parse(active.items || '[]'); } catch {}
+  document.getElementById('activeItemsList').textContent =
+    items.map(i => `${i.emoji || '•'} ${i.name} ×${i.qty}`).join('  ·  ');
+
+  // Barra de tiempo
+  const timeBar = document.getElementById('activeTimeBar');
+  if (active.estimated_time && (active.status === 'received' || active.status === 'preparing')) {
+    timeBar.style.display = '';
+    document.getElementById('activeTimeLabel').textContent = `${active.estimated_time} min`;
+    // Calcular progreso basado en tiempo transcurrido
+    const elapsed = (Date.now() - active.created_at) / 1000 / 60; // minutos
+    const pct = Math.min(100, Math.round(elapsed / active.estimated_time * 100));
+    document.getElementById('activeTimeFill').style.width = pct + '%';
+  } else {
+    timeBar.style.display = 'none';
+  }
+}
+
+// ─────────── LISTA DE TURNOS (derecha) ───────────
+function setTurnFilter(filter, btn) {
+  TURNS.filter = filter;
+  document.querySelectorAll('.turns-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTurnsList();
+}
+
+function renderTurnsList() {
+  let list = TURNS.orders;
+  if (TURNS.filter !== 'all') list = list.filter(o => o.status === TURNS.filter);
+
+  const el = document.getElementById('turnsList');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-turns"><div class="ei">📦</div><p>Sin pedidos en este estado</p></div>`;
+    return;
+  }
+
+  el.innerHTML = list.map(o => {
+    let items = [];
+    try { items = JSON.parse(o.items || '[]'); } catch {}
+    const si   = STATUS_MAP[o.status] || STATUS_MAP.received;
+    const date = new Date(o.created_at);
+    const time = date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    const isActive = o.id === TURNS.currentActiveId;
+
+    return `
+      <div class="turn-card ${si.card} ${isActive ? 'active-card' : ''}">
+        <div class="turn-num ${si.num}">${(o.order_number || '#??').replace('#', '')}</div>
+        <div class="turn-info">
+          <div class="turn-client">
+            ${isActive ? '⚡ ' : ''}${o.user_name || 'Cliente'}
+            <span style="font-size:11px;color:#4a4a6a;font-weight:500;margin-left:6px">${time}</span>
+          </div>
+          <div class="turn-products">${items.map(i => `${i.emoji||'•'} ${i.name} ×${i.qty}`).join(' · ')}</div>
+          <div class="turn-total">${formatCurrency(o.total)}</div>
+        </div>
+        <span class="turn-status-pill ${si.pill}">${si.icon} ${si.label}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─────────── CONTADORES ───────────
+function renderCounters() {
+  const counts = { received: 0, preparing: 0, ready: 0, delivered: 0 };
+  TURNS.orders.forEach(o => { if (counts[o.status] !== undefined) counts[o.status]++; });
+  Object.entries(counts).forEach(([status, n]) => {
+    const el = document.getElementById(`cnt-${status}`);
+    if (el) el.textContent = n;
+  });
+}
+
+// ─────────── ALERTA TURNO LISTO ───────────
+let readyAlertTimeout;
+function showReadyAlert(order) {
+  const alert = document.getElementById('readyAlert');
+  document.getElementById('readyAlertNum').textContent  = order.order_number || '#' + order.id?.slice(0,6);
+  document.getElementById('readyAlertName').textContent = order.user_name || 'Cliente';
+  alert.style.display = 'flex';
+  clearTimeout(readyAlertTimeout);
+  readyAlertTimeout = setTimeout(() => { alert.style.display = 'none'; }, 12000);
+}
+
+// ─────────── SONIDO ───────────
+function playTurnSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Acorde festivo
+    const sequence = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50];
+    sequence.forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.value = freq;
+      const t = ctx.currentTime + i * 0.18;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.4, t + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      osc.start(t); osc.stop(t + 0.4);
+    });
+  } catch {}
+}
+
+// ─────────── POLLING (cada 8 seg) ───────────
+async function startPolling() {
+  await loadTurns();
+  TURNS.pollInterval = setInterval(loadTurns, 8000);
+}
+
+// ─────────── INICIAR ───────────
+document.addEventListener('DOMContentLoaded', () => {
+  startPolling();
+  // Cerrar alerta al hacer click
+  document.getElementById('readyAlert').addEventListener('click', () => {
+    document.getElementById('readyAlert').style.display = 'none';
+  });
+});
+</script>
+</body>
+</html>
